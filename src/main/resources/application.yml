@@ -1,9 +1,10 @@
-server: 
-    port: 8080
-    servlet:
-        context-path: /api
+server.port: 8080
+server.servlet.context-path: /api
 
-spring: 
-    application:
-        name: fundamentos01
+spring.datasource.url: jdbc:postgresql://localhost:5432/devdb
+spring.datasource.username: ups
+spring.datasource.password: ups123
 
+spring.jpa.hibernate.ddl-auto: update
+spring.jpa.properties.hibernate.format_sql: true
+spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
