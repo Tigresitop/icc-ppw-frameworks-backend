@@ -26,6 +26,7 @@ public class UserServiceImpl implements UserService {
     public List<UserResponseDto> findAll() {
         return userRepository.findAll()
                 .stream()
+                .filter(entity -> !entity.isDeleted()) 
                 .map(UserMapper::toModelFromEntity)
                 .map(UserMapper::toResponse)
                 .toList();
@@ -34,13 +35,18 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDto findOne(Long id) {
         return userRepository.findById(id)
+                .filter(entity -> !entity.isDeleted())
                 .map(UserMapper::toModelFromEntity)
                 .map(UserMapper::toResponse)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new IllegalStateException("User not found or deleted"));
     }
 
     @Override
     public UserResponseDto create(CreateUserDto dto) {
+        if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new IllegalStateException("Email already registered");
+        }
+
         UserModel model = UserMapper.toModelFromDTO(dto);
         UserEntity entity = UserMapper.toEntityFromModel(model);
         UserEntity savedEntity = userRepository.save(entity);
@@ -51,7 +57,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDto update(Long id, UpdateUserDto dto) {
         UserEntity entity = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new IllegalStateException("User not found or deleted"));
 
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
@@ -64,7 +71,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDto partialUpdate(Long id, PartialUpdateUserDto dto) {
         UserEntity entity = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new IllegalStateException("User not found or deleted"));
 
         if (dto.getName() != null) {
             entity.setName(dto.getName());
@@ -81,7 +89,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public void delete(Long id) {
         UserEntity entity = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new IllegalStateException("User not found or already deleted"));
 
         entity.setDeleted(true);
         userRepository.save(entity);

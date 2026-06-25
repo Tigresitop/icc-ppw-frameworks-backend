@@ -34,9 +34,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponseDto findOne(Long id) {
         return productRepository.findById(id)
+                .filter(entity -> !entity.isDeleted())
                 .map(ProductMapper::toModelFromEntity)
                 .map(ProductMapper::toResponse)
-                .orElseThrow(() -> new IllegalStateException("Product not found"));
+                .orElseThrow(() -> new IllegalStateException("Product not found or deleted"));
     }
 
     @Override
@@ -51,7 +52,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponseDto update(Long id, UpdateProductDto dto) {
         ProductEntity entity = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("Product not found"));
+                .filter(e -> !e.isDeleted()) 
+                .orElseThrow(() -> new IllegalStateException("Product not found or deleted"));
 
         entity.setName(dto.getName());
         entity.setPrice(dto.getPrice());
@@ -65,7 +67,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponseDto partialUpdate(Long id, PartialUpdateProductDto dto) {
         ProductEntity entity = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("Product not found"));
+                .filter(e -> !e.isDeleted()) // Regla: No actualizar productos eliminados
+                .orElseThrow(() -> new IllegalStateException("Product not found or deleted"));
 
         if (dto.getName() != null) entity.setName(dto.getName());
         if (dto.getPrice() != null) entity.setPrice(dto.getPrice());
@@ -79,7 +82,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void delete(Long id) {
         ProductEntity entity = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("Product not found"));
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new IllegalStateException("Product not found or already deleted"));
 
         entity.setDeleted(true);
         productRepository.save(entity);

@@ -115,3 +115,20 @@ Se eliminó el almacenamiento temporal en memoria y se integró una base de dato
 El flujo de datos funciona así: la petición HTTP llega como JSON al **Controlador**, el cual la transforma en un DTO. El **Servicio** recibe el DTO, aplica la lógica y lo convierte en una Entidad (Entity) mediante el Mapper. Finalmente, el **Repositorio** toma esta entidad y usa Hibernate para generar la sentencia SQL que guarda los datos físicamente en **PostgreSQL**. Cuando se consultan datos, el viaje es a la inversa (BD -> Entidad -> Modelo -> DTO -> Cliente).
 
 **Uso de `BaseEntity`:** Es una superclase clave (marcada con `@MappedSuperclass`) que agrupa los campos de auditoría (`id`, `createdAt`, `updatedAt`, `deleted`). Al hacer que las entidades como `UserEntity` o `ProductEntity` hereden de ella, evitamos repetir código en cada tabla y estandarizamos la generación de IDs y el borrado lógico en todo el proyecto.
+# Práctica 6: Validación de DTOs y Control de Datos de Entrada
+
+En esta práctica se integró Jakarta Validation para proteger la API de datos incorrectos antes de que lleguen a la capa de servicios o base de datos. Se implementaron anotaciones como `@NotBlank`, `@NotNull`, `@Size` y `@Min` en los DTOs, y se activaron mediante la anotación `@Valid` en los controladores.
+
+Además, se implementaron reglas de negocio estrictas en los servicios para evitar la interacción con registros eliminados lógicamente.
+
+**1. Error por validación de entrada (POST inválido):**
+El controlador detiene la petición y devuelve un estado `400 Bad Request` al intentar enviar un nombre vacío y valores negativos para precio y stock.
+![POST Inválido](src/assets/post_invalido.png)
+
+**2. Regla de negocio: Bloqueo de actualización a producto eliminado:**
+Al intentar realizar un método `PUT` sobre un producto que previamente fue marcado como eliminado (deleted = true), el servicio lanza una excepción `IllegalStateException` controlada.
+![Error al actualizar eliminado](src/assets/update_eliminado.png)
+
+**3. Regla de negocio: `findAll` no devuelve productos eliminados:**
+La lista global excluye automáticamente los registros eliminados lógicamente, demostrando la eficacia del filtrado por streams en el servicio.
+![GET sin eliminados](src/assets/get_sin_eliminados.png)
