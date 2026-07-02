@@ -1,5 +1,6 @@
 package ec.edu.ups.icc.fundamentos01.products.dtos;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,20 +13,24 @@ public class UpdateProductDto {
     private String name;
 
     @NotNull(message = "El precio es obligatorio")
-    @Min(value = 0, message = "El precio no puede ser negativo")
+    @DecimalMin(value = "0.0", inclusive = true, message = "El precio no puede ser negativo")
     private Double price;
 
     @NotNull(message = "El stock es obligatorio")
     @Min(value = 0, message = "El stock no puede ser negativo")
     private Integer stock;
 
+    @NotNull(message = "El ID de la categoría es obligatorio")
+    private Long categoryId;
+
     public UpdateProductDto() {
     }
 
-    public UpdateProductDto(String name, Double price, Integer stock) {
+    public UpdateProductDto(String name, Double price, Integer stock, Long categoryId) {
         this.name = name;
         this.price = price;
         this.stock = stock;
+        this.categoryId = categoryId;
     }
 
     public String getName() {
@@ -51,6 +56,16 @@ public class UpdateProductDto {
     public void setStock(Integer stock) {
         this.stock = stock;
     }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    
 
     
 }

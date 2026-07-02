@@ -14,4 +14,7 @@ public interface ProductService {
     ProductResponseDto update(Long id, UpdateProductDto dto);
     ProductResponseDto partialUpdate(Long id, PartialUpdateProductDto dto);
     void delete(Long id);
+    List<ProductResponseDto> findByUserId(Long userId);
+
+    List<ProductResponseDto> findByCategoryId(Long categoryId);
 }
