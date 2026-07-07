@@ -15,7 +15,7 @@ import ec.edu.ups.icc.fundamentos01.core.exceptions.domain.NotFoundException;
 @Service
 public class CategoryServiceImpl implements CategoryService{
 
-     private final CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
 
     public CategoryServiceImpl(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
@@ -90,9 +90,6 @@ public class CategoryServiceImpl implements CategoryService{
     }
 
 
-    /// Este método es privado porque solo se utiliza dentro de esta clase
-    //  para convertir una entidad de categoría en un DTO de respuesta. 
-    //  Puede estar en una clase Mapper
     private CategoryResponseDto toResponse(CategoryEntity entity) {
         CategoryResponseDto dto = new CategoryResponseDto();
 

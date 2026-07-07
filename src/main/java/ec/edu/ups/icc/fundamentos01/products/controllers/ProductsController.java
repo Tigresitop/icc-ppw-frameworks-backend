@@ -2,8 +2,12 @@ package ec.edu.ups.icc.fundamentos01.products.controllers;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Slice;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import ec.edu.ups.icc.fundamentos01.core.dtos.PaginationDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.CreateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.PartialUpdateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.ProductResponseDto;
@@ -29,9 +34,39 @@ public class ProductsController {
         this.service = service;
     }
 
+    /*
+     * Endpoint normal.
+     * Se mantiene sin paginación para comparar con los endpoints paginados.
+     */
     @GetMapping
     public List<ProductResponseDto> findAll() {
         return service.findAll();
+    }
+
+    /*
+     * Endpoint paginado usando Page.
+     * GET /api/products/page
+     * GET /api/products/page?page=0&size=5
+     * GET /api/products/page?page=0&size=5&sortBy=price&direction=desc
+     */
+    @GetMapping("/page")
+    public Page<ProductResponseDto> findAllPage(
+            @Valid @ModelAttribute PaginationDto pagination
+    ) {
+        return service.findAllPage(pagination);
+    }
+
+    /*
+     * Endpoint paginado usando Slice.
+     * GET /api/products/slice
+     * GET /api/products/slice?page=0&size=5
+     * GET /api/products/slice?page=0&size=5&sortBy=createdAt&direction=desc
+     */
+    @GetMapping("/slice")
+    public Slice<ProductResponseDto> findAllSlice(
+            @Valid @ModelAttribute PaginationDto pagination
+    ) {
+        return service.findAllSlice(pagination);
     }
 
     @GetMapping("/{id}")
@@ -67,15 +102,5 @@ public class ProductsController {
     @GetMapping("/user/{userId}")
     public List<ProductResponseDto> findByUserId(@PathVariable Long userId) {
         return service.findByUserId(userId);
-    }
-
-    /*
-     * Endpoint para buscar productos por id de categoría.
-     *
-     * GET /products/category/{categoryId}
-     */
-    @GetMapping("/category/{categoryId}")
-    public List<ProductResponseDto> findByCategoryId(@PathVariable Long categoryId) {
-        return service.findByCategoryId(categoryId);
     }
 }

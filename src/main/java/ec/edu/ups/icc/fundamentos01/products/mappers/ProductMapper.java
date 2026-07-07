@@ -1,5 +1,7 @@
 package ec.edu.ups.icc.fundamentos01.products.mappers;
 
+import java.util.HashSet;
+
 import ec.edu.ups.icc.fundamentos01.categories.dtos.CategoryResponseDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.CreateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.ProductResponseDto;
@@ -27,7 +29,9 @@ public class ProductMapper {
         model.setUpdatedAt(entity.getUpdatedAt());
         model.setDeleted(entity.isDeleted());
         model.setOwner(entity.getOwner());
-        model.setCategory(entity.getCategory());
+        if (entity.getCategories() != null) {
+            model.setCategories(entity.getCategories().stream().toList());
+        }
         return model;
     }
 
@@ -38,7 +42,9 @@ public class ProductMapper {
         entity.setPrice(model.getPrice());
         entity.setStock(model.getStock());
         entity.setOwner(model.getOwner());
-        entity.setCategory(model.getCategory());
+        if (model.getCategories() != null) {
+            entity.setCategories(new HashSet<>(model.getCategories()));
+        }
         return entity;
     }
 
@@ -59,16 +65,17 @@ public class ProductMapper {
             response.setOwner(ownerDto);
         }
 
-        if (model.getCategory() != null) {
-            CategoryResponseDto categoryDto = new CategoryResponseDto();
-            categoryDto.setId(model.getCategory().getId());
-            categoryDto.setName(model.getCategory().getName());
-            categoryDto.setDescription(model.getCategory().getDescription());
-            response.setCategory(categoryDto);
+        if (model.getCategories() != null) {
+            response.setCategories(model.getCategories().stream().map(cat -> {
+                CategoryResponseDto categoryDto = new CategoryResponseDto();
+                categoryDto.setId(cat.getId());
+                categoryDto.setName(cat.getName());
+                categoryDto.setDescription(cat.getDescription());
+                return categoryDto;
+            }).toList());
         }
 
         return response;
     }
-
-    
 }
+    

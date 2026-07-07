@@ -1,6 +1,7 @@
 package ec.edu.ups.icc.fundamentos01.products.models;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import ec.edu.ups.icc.fundamentos01.categories.entities.CategoryEntity;
 import ec.edu.ups.icc.fundamentos01.users.entities.UserEntity;
@@ -15,12 +16,12 @@ public class ProductModel {
     private LocalDateTime updatedAt;
     private boolean deleted;
     private UserEntity owner;
-    private CategoryEntity category;
+    private List<CategoryEntity> categories;
 
     public ProductModel() {
     }
 
-    public ProductModel(Long id, String name, Double price, Integer stock, LocalDateTime createdAt, LocalDateTime updatedAt, boolean deleted, UserEntity owner, CategoryEntity category) {
+    public ProductModel(Long id, String name, Double price, Integer stock, LocalDateTime createdAt, LocalDateTime updatedAt, boolean deleted, UserEntity owner, List<CategoryEntity> categories) {
         this.id = id;
         this.name = name;
         this.price = price;
@@ -94,14 +95,12 @@ public class ProductModel {
         this.owner = owner;
     }
 
-    public CategoryEntity getCategory() {
-        return category;
+    public List<CategoryEntity> getCategories() {
+        return categories;
     }
 
-    public void setCategory(CategoryEntity category) {
-        this.category = category;
+    public void setCategories(List<CategoryEntity> categories) {
+        this.categories = categories;
     }
-
-    
 
 }

@@ -1,6 +1,7 @@
 package ec.edu.ups.icc.fundamentos01.products.dtos;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import ec.edu.ups.icc.fundamentos01.categories.dtos.CategoryResponseDto;
 import ec.edu.ups.icc.fundamentos01.users.dtos.UserResponseDto;
@@ -17,7 +18,7 @@ public class ProductResponseDto {
 
     private UserResponseDto owner;
 
-    private CategoryResponseDto category;
+    private List<CategoryResponseDto> categories;
 
     private LocalDateTime createdAt;
 
@@ -26,13 +27,13 @@ public class ProductResponseDto {
     public ProductResponseDto() {
     }
 
-    public ProductResponseDto(Long id, String name, Double price, Integer stock, UserResponseDto owner, CategoryResponseDto category, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public ProductResponseDto(Long id, String name, Double price, Integer stock, UserResponseDto owner, List<CategoryResponseDto> categories, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.stock = stock;
         this.owner = owner;
-        this.category = category;
+        this.categories = categories;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -77,14 +78,6 @@ public class ProductResponseDto {
         this.owner = owner;
     }
 
-    public CategoryResponseDto getCategory() {
-        return category;
-    }
-
-    public void setCategory(CategoryResponseDto category) {
-        this.category = category;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -99,5 +92,13 @@ public class ProductResponseDto {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<CategoryResponseDto> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(List<CategoryResponseDto> categories) {
+        this.categories = categories;
     }
 }
