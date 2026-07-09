@@ -240,3 +240,24 @@ Al consumir la variante `/api/categories/2/products/slice?page=0&size=5`, se obt
 **¿Por qué la paginación debe aplicarse en el repositorio y no después de traer todos los datos en memoria?**
 > Aplicar la paginación en memoria destruye la escalabilidad de la aplicación. Si una tabla tiene millones de registros y paginamos en memoria (ej. usando `.subList()` en Java), la base de datos se verá obligada a hacer un `SELECT *` masivo. Esto provocará un cuello de botella en la red y saturará la memoria RAM del servidor (riesgo de colapso por `OutOfMemoryError`).
 > Al aplicar la paginación directamente en la capa del **repositorio** usando `Pageable`, delegamos el trabajo al motor de base de datos (PostgreSQL). Este utiliza comandos nativos garantizando que por la red viajen exclusivamente los registros exactos que el cliente solicitó, manteniendo el sistema rápido y estable.
+# Práctica 11: Autenticación JWT, Autorización por Roles y Protección de Endpoints
+
+En esta práctica se implementó una arquitectura de seguridad robusta y sin estado (Stateless) utilizando Spring Security y JSON Web Tokens (JWT). Se eliminó el acceso público irrestricto de la API, delegando la seguridad a un filtro interceptor (`JwtAuthenticationFilter`) que valida la integridad criptográfica de cada request mediante la firma digital con algoritmo HMAC-SHA256. Asimismo, se integró una tabla independiente de roles en PostgreSQL con relación `ManyToMany` hacia los usuarios.
+
+## Resultados y Evidencias
+
+**1. Registro de Usuario Exitoso (201 Created):**
+Al realizar un `POST` al endpoint público `/api/auth/register`, el sistema valida la unicidad del email, hashea la contraseña usando BCrypt con un salt aleatorio y guarda el registro asignando automáticamente el rol `ROLE_USER`. Al finalizar, devuelve el token JWT inicial para login directo.
+![Registro Exitoso](src/assets/auth_register_success.png)
+
+**2. Inicio de Sesión / Login Exitoso (200 OK):**
+El endpoint `/api/auth/login` recibe las credenciales y las valida mediante el `AuthenticationManager`. Si son correctas, el `JwtUtil` genera un token de acceso firmado digitalmente que incluye claims personalizados (id, name, email y roles), retornándolo al cliente.
+![Login Exitoso](src/assets/auth_login_success.png)
+
+**3. Acceso Denegado a Endpoint Protegido (401 Unauthorized):**
+Al intentar consumir un recurso protegido (como el listado paginado de productos) sin enviar credenciales, el interceptor detiene la petición. El `JwtAuthenticationEntryPoint` toma el control y serializa un JSON de error estructurado consistente con el formato global de la aplicación.
+![Error 401 Unauthorized](src/assets/error_401_unauthorized.png)
+
+**4. Acceso Concedido a Endpoint Protegido mediante Bearer Token:**
+Al enviar la petición HTTP incluyendo el header `Authorization: Bearer <token>`, el filtro extrae el JWT, valida su vigencia y firma criptográfica, recupera el usuario desde la base de datos y establece el `SecurityContext`, permitiendo la correcta ejecución de la consulta.
+![Endpoint protegido con exito](src/assets/protected_endpoint_success.png)
