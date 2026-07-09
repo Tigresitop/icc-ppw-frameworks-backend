@@ -235,14 +235,14 @@ Al consumir la variante `/api/categories/2/products/slice?page=0&size=5`, se obt
 **¿Cuál es la diferencia entre Page y Slice?**
 > La principal diferencia radica en el rendimiento y en la metadata que retornan debido a cómo construyen sus consultas SQL. 
 > * **`Page`** es más pesado porque ejecuta **dos consultas** a la base de datos: una para traer los datos solicitados (usando `LIMIT` y `OFFSET`) y otra consulta adicional `COUNT` para calcular el total exacto de registros en la tabla. Por esto, devuelve metadata completa como `totalElements` y `totalPages`, siendo ideal para tablas administrativas con botoneras de paginación exacta.
-> * **`Slice`** es más eficiente porque ejecuta **una sola consulta** pidiendo la cantidad de registros solicitada más uno adicional. Al encontrar ese registro extra, sabe que existe una página siguiente, pero desconoce el total de datos. Es ideal para interfaces modernas de alto rendimiento como el "Scroll infinito".
+> * **`Slice`** es más eficiente porque ejecuta **una sola consulta** pidiendo la cantidad de registros solicitada más uno adicional. Al encontrar ese registro extra, sabe que existe una página siguiente,  pero desconoce el total de datos. Es ideal para interfaces modernas de alto rendimiento como el "Scroll infinito".
 
 **¿Por qué la paginación debe aplicarse en el repositorio y no después de traer todos los datos en memoria?**
 > Aplicar la paginación en memoria destruye la escalabilidad de la aplicación. Si una tabla tiene millones de registros y paginamos en memoria (ej. usando `.subList()` en Java), la base de datos se verá obligada a hacer un `SELECT *` masivo. Esto provocará un cuello de botella en la red y saturará la memoria RAM del servidor (riesgo de colapso por `OutOfMemoryError`).
 > Al aplicar la paginación directamente en la capa del **repositorio** usando `Pageable`, delegamos el trabajo al motor de base de datos (PostgreSQL). Este utiliza comandos nativos garantizando que por la red viajen exclusivamente los registros exactos que el cliente solicitó, manteniendo el sistema rápido y estable.
 # Práctica 11: Autenticación JWT, Autorización por Roles y Protección de Endpoints
 
-En esta práctica se implementó una arquitectura de seguridad robusta y sin estado (Stateless) utilizando Spring Security y JSON Web Tokens (JWT). Se eliminó el acceso público irrestricto de la API, delegando la seguridad a un filtro interceptor (`JwtAuthenticationFilter`) que valida la integridad criptográfica de cada request mediante la firma digital con algoritmo HMAC-SHA256. Asimismo, se integró una tabla independiente de roles en PostgreSQL con relación `ManyToMany` hacia los usuarios.
+En esta práctica se implementó una arquitectura de seguridad robusta y sin estado (Stateless) utilizando Spring Security y JSON Web Tokens (JWT). Se eliminó el acceso público irrestricto de la API,  delegando la seguridad a un filtro interceptor (`JwtAuthenticationFilter`) que valida la integridad criptográfica de cada request mediante la firma digital con algoritmo HMAC-SHA256. Asimismo, se integró una tabla independiente de roles en PostgreSQL con relación `ManyToMany` hacia los usuarios.
 
 ## Resultados y Evidencias
 
