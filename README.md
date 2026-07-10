@@ -291,3 +291,38 @@ Al realizar la misma petición `GET /api/products` pero inyectando el token de u
 **¿Por qué GET /api/products debe ser solo para ADMIN, mientras GET /api/products/page puede ser consumido por cualquier usuario autenticado?**
 El endpoint `GET /api/products` ejecuta un `findAll()` tradicional. Si la base de datos tuviera un millón de registros, este endpoint intentaría cargar todos en la memoria RAM del servidor simultáneamente, causando latencia severa o un colapso del sistema (`OutOfMemoryError`). Por su alto impacto y por exponer datos masivos, se restringe solo a tareas administrativas críticas (`ROLE_ADMIN`). 
 En cambio, `GET /api/products/page` utiliza paginación a nivel de base de datos. Solo carga y devuelve un fragmento pequeño y controlado de información (ej. 10 registros), lo cual es seguro, ligero y escalable, haciéndolo apto para que cualquier usuario normal lo consuma desde el frontend.
+# Práctica 13: Validación de Propiedad de Recursos (Ownership)
+
+En esta práctica implementamos la validación de *Ownership* (propiedad) para proteger las operaciones de modificación de datos. Se delegó la extracción del propietario del recurso directamente desde el token JWT (a través de `@AuthenticationPrincipal`) para evitar manipulaciones desde el cliente, y se crearon consultas condicionales a nivel de base de datos para la paginación según el rol del usuario.
+
+## Resultados y Evidencias
+
+**1. Creación de producto con usuario autenticado**
+Al enviar el DTO sin el `userId`, el backend extrae la identidad desde el token. El producto se crea exitosamente asignando al usuario logueado como su legítimo `owner`.
+![Creación de producto](./src/assets/crear_producto_owner.png)
+
+**2. Bloqueo por modificación de producto ajeno (PUT)**
+Un usuario intenta modificar un producto que no le pertenece. El servicio valida que su ID no coincide con el `owner_id` del producto y lanza una `AccessDeniedException`, resultando en un 403 controlado.
+![Bloqueo PUT](./src/assets/bloqueo_put_ajeno.png)
+
+**3. Bloqueo por eliminación de producto ajeno (DELETE)**
+El mismo usuario sin permisos intenta eliminar el producto de otro usuario. La validación de ownership rechaza la solicitud protegiendo la integridad de los datos de otros clientes.
+![Bloqueo DELETE](./src/assets/bloqueo_delete_ajeno.png)
+
+**4. ADMIN modificando un producto ajeno**
+Un usuario con `ROLE_ADMIN` intenta modificar el producto de otro usuario. La función `validateOwnership` detecta el rol superior y omite la validación de dueño, permitiendo la operación con éxito (200 OK).
+![Admin modifica ajeno](./src/assets/admin_modifica_ajeno.png)
+
+---
+
+## Explicación Breve
+
+**¿Qué es ownership?**
+El *ownership* (o propiedad) es un concepto de seguridad y lógica de negocio que dicta que un recurso (como un producto, un comentario o una publicación) le pertenece a un usuario específico (su creador). Esta regla establece que solo el dueño legítimo de ese recurso, o un administrador con privilegios superiores, tiene el derecho de modificarlo o eliminarlo de la base de datos.
+
+**¿Por qué no es seguro recibir `userId` en `CreateProductDto`?**
+Si el backend confía ciegamente en un `userId` enviado en el cuerpo de la petición (JSON) por parte del cliente, un usuario malintencionado podría interceptar la petición y cambiar ese número por el ID de otra persona. Esto le permitiría crear registros falsos a nombre de otros usuarios. Extraer el ID directamente del token JWT en el servidor garantiza que el creador es exactamente quien dice ser.
+
+**¿Cuál es la diferencia entre autorización por rol y autorización por ownership?**
+* **Autorización por rol:** Responde a la pregunta *"¿Qué cargo tienes?"*. Evalúa si el usuario pertenece a un grupo con ciertos privilegios generales (ej. `ROLE_ADMIN` puede ver paneles generales o listar todos los usuarios).
+* **Autorización por ownership:** Responde a la pregunta *"¿Esta información es tuya?"*. Actúa a nivel de los datos (filas de la base de datos). Incluso si un usuario tiene permisos para ejecutar una acción genérica como "editar productos" (`ROLE_USER`), el ownership verifica que solo pueda editar **sus propios** productos y no los de su compañero.

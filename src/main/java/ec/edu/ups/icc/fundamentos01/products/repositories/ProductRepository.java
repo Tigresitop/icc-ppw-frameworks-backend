@@ -70,34 +70,50 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
         );
 
 
+        // ====================================================================
+        // CONSULTAS DE PAGINACIÓN ACTUALIZADAS PARA OWNERSHIP (Práctica 13)
+        // ====================================================================
+
         /*
-         * Consulta todos los productos activos usando Page (Apartado 9).
-         * Page ejecuta consulta de datos y consulta COUNT.
+         * Consulta productos activos usando Page.
+         * Incorpora Ownership: Si es ADMIN trae todos, si es USER trae solo los suyos.
          */
         @Query(
                 value = """
                         SELECT p
                         FROM ProductEntity p
                         WHERE p.deleted = false
+                        AND (:isAdmin = true OR p.owner.id = :userId)
                         """,
                 countQuery = """
                         SELECT COUNT(p)
                         FROM ProductEntity p
                         WHERE p.deleted = false
+                        AND (:isAdmin = true OR p.owner.id = :userId)
                         """
         )
-        Page<ProductEntity> findActivePage(Pageable pageable);
+        Page<ProductEntity> findActivePageWithOwnership(
+                @Param("userId") Long userId, 
+                @Param("isAdmin") boolean isAdmin, 
+                Pageable pageable);
 
         /*
-         * Consulta todos los productos activos usando Slice (Apartado 9).
-         * Slice no necesita total de registros.
+         * Consulta productos activos usando Slice.
+         * Incorpora Ownership: Si es ADMIN trae todos, si es USER trae solo los suyos.
          */
         @Query("""
                 SELECT p
                 FROM ProductEntity p
                 WHERE p.deleted = false
+                AND (:isAdmin = true OR p.owner.id = :userId)
                 """)
-        Slice<ProductEntity> findActiveSlice(Pageable pageable);
+        Slice<ProductEntity> findActiveSliceWithOwnership(
+                @Param("userId") Long userId, 
+                @Param("isAdmin") boolean isAdmin, 
+                Pageable pageable);
+
+        // ====================================================================
+
 
         /*
          * Consulta productos por categoría usando Page (Apartado 20.4)
@@ -139,9 +155,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                 Pageable pageable
         );
 
-        /*
-         * Consulta productos por categoría usando Slice (Apartado 20.4)
-         */
         @Query("""
                 SELECT DISTINCT p
                 FROM ProductEntity p
@@ -164,5 +177,4 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                 Pageable pageable
         );
 
-        
 }

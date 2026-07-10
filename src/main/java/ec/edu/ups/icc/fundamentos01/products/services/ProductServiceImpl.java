@@ -4,6 +4,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import ec.edu.ups.icc.fundamentos01.categories.entities.CategoryEntity;
 import ec.edu.ups.icc.fundamentos01.categories.repositories.CategoryRepository;
@@ -31,6 +32,8 @@ import ec.edu.ups.icc.fundamentos01.products.models.ProductModel;
 import ec.edu.ups.icc.fundamentos01.products.repositories.ProductRepository;
 import ec.edu.ups.icc.fundamentos01.users.entities.UserEntity;
 import ec.edu.ups.icc.fundamentos01.users.repositories.UserRepository;
+import ec.edu.ups.icc.fundamentos01.security.services.UserDetailsImpl;
+
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -74,22 +77,15 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponseDto findOne(Long id) {
-        ProductEntity entity = productRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"));
-
+        ProductEntity entity = findActiveProductOrThrow(id);
         ProductModel model = ProductMapper.toModelFromEntity(entity);
         return ProductMapper.toResponse(model);
     }
 
     @Override
-    public ProductResponseDto create(CreateProductDto dto) {
-        UserEntity owner = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        if (owner.isDeleted()) {
-            throw new NotFoundException("User not found");
-        }
-
+    @Transactional
+    public ProductResponseDto create(CreateProductDto dto, UserDetailsImpl currentUser) {
+        UserEntity owner = findCurrentUserEntity(currentUser);
         Set<CategoryEntity> categories = validateAndGetCategories(dto.getCategoryIds());
 
         if (productRepository.findByNameIgnoreCaseAndDeletedFalse(dto.getName()).isPresent()) {
@@ -101,7 +97,7 @@ public class ProductServiceImpl implements ProductService {
         entity.setPrice(dto.getPrice());
         entity.setStock(dto.getStock());
         entity.setOwner(owner);
-        entity.setCategories(categories); 
+        entity.setCategories(categories);
 
         ProductEntity savedEntity = productRepository.save(entity);
         ProductModel savedModel = ProductMapper.toModelFromEntity(savedEntity);
@@ -109,9 +105,12 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponseDto update(Long id, UpdateProductDto dto) {
-        ProductEntity entity = productRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"));
+    @Transactional
+    public ProductResponseDto update(Long id, UpdateProductDto dto, UserDetailsImpl currentUser) {
+        ProductEntity entity = findActiveProductOrThrow(id);
+        
+        // SE VALIDA QUE EL USUARIO AUTENTICADO PUEDA MODIFICAR ESTE PRODUCTO
+        validateOwnership(entity, currentUser);
 
         Set<CategoryEntity> categories = validateAndGetCategories(dto.getCategoryIds());
 
@@ -126,9 +125,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponseDto partialUpdate(Long id, PartialUpdateProductDto dto) {
-        ProductEntity entity = productRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"));
+    @Transactional
+    public ProductResponseDto partialUpdate(Long id, PartialUpdateProductDto dto, UserDetailsImpl currentUser) {
+        ProductEntity entity = findActiveProductOrThrow(id);
+        
+        validateOwnership(entity, currentUser);
 
         if (dto.getName() != null) {
             entity.setName(dto.getName());
@@ -150,9 +151,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void delete(Long id) {
-        ProductEntity entity = productRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"));
+    @Transactional
+    public void delete(Long id, UserDetailsImpl currentUser) {
+        ProductEntity entity = findActiveProductOrThrow(id);
+        
+        validateOwnership(entity, currentUser);
 
         entity.setDeleted(true);
         productRepository.save(entity);
@@ -187,7 +190,6 @@ public class ProductServiceImpl implements ProductService {
             throw new NotFoundException("Category not found");
         }
 
-        // USANDO EL HELPER CORRECTO
         validateCategoryFilters(filters);
         String name = normalizeName(filters.getName());
 
@@ -199,36 +201,32 @@ public class ProductServiceImpl implements ProductService {
                 .toList();
     }
 
-    /*
-     * Retorna productos activos usando Page.
-     * Incluye metadatos completos: totalElements, totalPages, number, size, first, last.
-     */
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductResponseDto> findAllPage(PaginationDto pagination) {
+    public Page<ProductResponseDto> findAllPage(PaginationDto pagination, UserDetailsImpl currentUser) {
         Pageable pageable = createPageable(pagination);
-        return productRepository.findActivePage(pageable)
+        
+        boolean isAdmin = hasRole(currentUser, "ROLE_ADMIN");
+        Long currentUserId = currentUser.getId();
+        
+        return productRepository.findActivePageWithOwnership(currentUserId, isAdmin, pageable)
                 .map(ProductMapper::toModelFromEntity)
                 .map(ProductMapper::toResponse);
     }
 
-    /*
-     * Retorna productos activos usando Slice.
-     * No incluye totalElements ni totalPages. Es más liviano.
-     */
     @Override
     @Transactional(readOnly = true)
-    public Slice<ProductResponseDto> findAllSlice(PaginationDto pagination) {
+    public Slice<ProductResponseDto> findAllSlice(PaginationDto pagination, UserDetailsImpl currentUser) {
         Pageable pageable = createPageable(pagination);
-        return productRepository.findActiveSlice(pageable)
+        
+        boolean isAdmin = hasRole(currentUser, "ROLE_ADMIN");
+        Long currentUserId = currentUser.getId();
+        
+        return productRepository.findActiveSliceWithOwnership(currentUserId, isAdmin, pageable)
                 .map(ProductMapper::toModelFromEntity)
                 .map(ProductMapper::toResponse);
     }
 
-    /*
-     * Retorna productos activos de una categoría usando Page.
-     * Mantiene los filtros de la práctica anterior y agrega paginación. (Apartado 20.5)
-     */
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponseDto> findByCategoryIdWithFiltersPage(
@@ -240,11 +238,8 @@ public class ProductServiceImpl implements ProductService {
             throw new NotFoundException("Category not found");
         }
 
-        // USANDO EL HELPER CORRECTO DEL .MD
         validateCategoryFilters(filters);
-
         String name = normalizeName(filters.getName());
-
         Pageable pageable = createPageable(pagination);
 
         return productRepository.findByCategoryIdWithFiltersPage(
@@ -252,10 +247,6 @@ public class ProductServiceImpl implements ProductService {
         ).map(ProductMapper::toModelFromEntity).map(ProductMapper::toResponse);
     }
 
-    /*
-     * Retorna productos activos de una categoría usando Slice.
-     * No calcula totalElements ni totalPages. (Apartado 20.5)
-     */
     @Override
     @Transactional(readOnly = true)
     public Slice<ProductResponseDto> findByCategoryIdWithFiltersSlice(
@@ -267,16 +258,52 @@ public class ProductServiceImpl implements ProductService {
             throw new NotFoundException("Category not found");
         }
 
-        // USANDO EL HELPER CORRECTO DEL .MD
         validateCategoryFilters(filters);
-
         String name = normalizeName(filters.getName());
-
         Pageable pageable = createPageable(pagination);
 
         return productRepository.findByCategoryIdWithFiltersSlice(
                 categoryId, name, filters.getMinPrice(), filters.getMaxPrice(), filters.getUserId(), pageable
         ).map(ProductMapper::toModelFromEntity).map(ProductMapper::toResponse);
+    }
+
+    private ProductEntity findActiveProductOrThrow(Long id) {
+        return productRepository.findById(id)
+                .filter(product -> !product.isDeleted())
+                .orElseThrow(() -> new NotFoundException("Product not found"));
+    }
+
+    private UserEntity findCurrentUserEntity(UserDetailsImpl currentUser) {
+        if (currentUser == null) {
+            throw new AccessDeniedException("Usuario no autenticado");
+        }
+        return userRepository.findByIdAndDeletedFalse(currentUser.getId())
+                .orElseThrow(() -> new AccessDeniedException("Usuario no autorizado"));
+    }
+
+    private void validateOwnership(ProductEntity product, UserDetailsImpl currentUser) {
+        if (currentUser == null) {
+            throw new AccessDeniedException("Usuario no autenticado");
+        }
+
+        if (hasRole(currentUser, "ROLE_ADMIN")) {
+            return;
+        }
+
+        if (product.getOwner() == null || product.getOwner().getId() == null) {
+            throw new AccessDeniedException("El producto no tiene propietario válido");
+        }
+
+        if (!product.getOwner().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("No puedes modificar productos ajenos");
+        }
+    }
+
+    private boolean hasRole(UserDetailsImpl user, String role) {
+        return user.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> authority.equals(role));
     }
 
     private Set<CategoryEntity> validateAndGetCategories(Set<Long> categoryIds) {
@@ -285,7 +312,6 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Set<CategoryEntity> categories = new HashSet<>();
-
         for (Long categoryId : categoryIds) {
             CategoryEntity category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new NotFoundException("Category not found"));
@@ -295,7 +321,6 @@ public class ProductServiceImpl implements ProductService {
             }
             categories.add(category);
         }
-
         return categories;
     }
 
@@ -306,18 +331,11 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    /*
-     * Helper para validar filtros de categoría (Apartado 20.6)
-     */
     private void validateCategoryFilters(ProductFilterByCategoryDto filters) {
-        if (filters == null) {
-            return;
-        }
-
+        if (filters == null) return;
         if (!filters.hasValidPriceRange()) {
             throw new BadRequestException("El precio máximo debe ser mayor o igual al precio mínimo");
         }
-
         if (filters.getUserId() != null && !userRepository.existsByIdAndDeletedFalse(filters.getUserId())) {
             throw new NotFoundException("User not found");
         }
@@ -328,10 +346,6 @@ public class ProductServiceImpl implements ProductService {
         return name.trim();
     }
 
-    /*
-     * Construye el objeto Pageable validando:
-     * página, tamaño, campo de ordenamiento y dirección. (Punto 12.1)
-     */
     private Pageable createPageable(PaginationDto pagination) {
         String sortBy = normalizeSortBy(pagination.getSortBy());
         Sort.Direction direction = normalizeDirection(pagination.getDirection());
@@ -344,46 +358,24 @@ public class ProductServiceImpl implements ProductService {
         );
     }
 
-    /*
-     * Valida que el campo de ordenamiento exista y esté permitido. (Punto 12.2)
-     */
     private String normalizeSortBy(String sortBy) {
         if (sortBy == null || sortBy.isBlank()) {
             return "id";
         }
-
-        Set<String> allowedFields = Set.of(
-                "id",
-                "name",
-                "price",
-                "stock",
-                "createdAt",
-                "updatedAt"
-        );
-
+        Set<String> allowedFields = Set.of("id", "name", "price", "stock", "createdAt", "updatedAt");
         if (!allowedFields.contains(sortBy)) {
             throw new BadRequestException("Campo de ordenamiento no permitido: " + sortBy);
         }
-
         return sortBy;
     }
 
-    /*
-     * Convierte la dirección recibida por query param en Sort.Direction. (Punto 12.3)
-     */
     private Sort.Direction normalizeDirection(String direction) {
         if (direction == null || direction.isBlank()) {
             return Sort.Direction.ASC;
         }
-
-        if (direction.equalsIgnoreCase("asc")) {
-            return Sort.Direction.ASC;
-        }
-
-        if (direction.equalsIgnoreCase("desc")) {
-            return Sort.Direction.DESC;
-        }
-
+        if (direction.equalsIgnoreCase("asc")) return Sort.Direction.ASC;
+        if (direction.equalsIgnoreCase("desc")) return Sort.Direction.DESC;
+        
         throw new BadRequestException("Dirección de ordenamiento no válida: " + direction);
     }
 }

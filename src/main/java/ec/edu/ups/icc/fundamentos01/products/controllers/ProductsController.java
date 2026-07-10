@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Slice;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -22,7 +23,10 @@ import ec.edu.ups.icc.fundamentos01.products.dtos.PartialUpdateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.ProductResponseDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.UpdateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.services.ProductService;
+import ec.edu.ups.icc.fundamentos01.security.services.UserDetailsImpl;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/products")
@@ -34,41 +38,27 @@ public class ProductsController {
         this.service = service;
     }
 
-    /*
-     * Endpoint normal.
-     * Se mantiene sin paginación para comparar con los endpoints paginados.
-     * AHORA PROTEGIDO: Solo los usuarios con rol ADMIN pueden acceder.
-     */
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')") 
     public List<ProductResponseDto> findAll() {
         return service.findAll();
     }
 
-    /*
-     * Endpoint paginado usando Page.
-     * GET /api/products/page
-     * GET /api/products/page?page=0&size=5
-     * GET /api/products/page?page=0&size=5&sortBy=price&direction=desc
-     */
     @GetMapping("/page")
     public Page<ProductResponseDto> findAllPage(
-            @Valid @ModelAttribute PaginationDto pagination
+            @Valid @ModelAttribute PaginationDto pagination,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
     ) {
-        return service.findAllPage(pagination);
+        return service.findAllPage(pagination, currentUser); 
     }
 
-    /*
-     * Endpoint paginado usando Slice.
-     * GET /api/products/slice
-     * GET /api/products/slice?page=0&size=5
-     * GET /api/products/slice?page=0&size=5&sortBy=createdAt&direction=desc
-     */
     @GetMapping("/slice")
     public Slice<ProductResponseDto> findAllSlice(
-            @Valid @ModelAttribute PaginationDto pagination
+            @Valid @ModelAttribute PaginationDto pagination,
+            @AuthenticationPrincipal UserDetailsImpl currentUser 
     ) {
-        return service.findAllSlice(pagination);
+        return service.findAllSlice(pagination, currentUser); 
     }
 
     @GetMapping("/{id}")
@@ -77,30 +67,39 @@ public class ProductsController {
     }
 
     @PostMapping
-    public ProductResponseDto create(@Valid @RequestBody CreateProductDto dto) {
-        return service.create(dto);
+    public ProductResponseDto create(
+            @Valid @RequestBody CreateProductDto dto,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        return service.create(dto, currentUser);
     }
 
     @PutMapping("/{id}")
-    public ProductResponseDto update(@PathVariable Long id, @Valid @RequestBody UpdateProductDto dto) {
-        return service.update(id, dto);
+    public ProductResponseDto update(
+            @PathVariable Long id, 
+            @Valid @RequestBody UpdateProductDto dto,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        return service.update(id, dto, currentUser);
     }
 
     @PatchMapping("/{id}")
-    public ProductResponseDto partialUpdate(@PathVariable Long id, @Valid @RequestBody PartialUpdateProductDto dto) {
-        return service.partialUpdate(id, dto);
+    public ProductResponseDto partialUpdate(
+            @PathVariable Long id, 
+            @Valid @RequestBody PartialUpdateProductDto dto,
+            @AuthenticationPrincipal UserDetailsImpl currentUser 
+    ) {
+        return service.partialUpdate(id, dto, currentUser);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
+    public void delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        service.delete(id, currentUser);
     }
 
-    /*
-     * Endpoint para buscar productos por id de usuario.
-     *
-     * GET /products/user/{userId}
-     */
     @GetMapping("/user/{userId}")
     public List<ProductResponseDto> findByUserId(@PathVariable Long userId) {
         return service.findByUserId(userId);
