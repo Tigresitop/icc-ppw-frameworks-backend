@@ -261,3 +261,33 @@ Al intentar consumir un recurso protegido (como el listado paginado de productos
 **4. Acceso Concedido a Endpoint Protegido mediante Bearer Token:**
 Al enviar la petición HTTP incluyendo el header `Authorization: Bearer <token>`, el filtro extrae el JWT, valida su vigencia y firma criptográfica, recupera el usuario desde la base de datos y establece el `SecurityContext`, permitiendo la correcta ejecución de la consulta.
 ![Endpoint protegido con exito](src/assets/protected_endpoint_success.png)
+
+# Práctica 12: Protección de Endpoints con Roles y @PreAuthorize
+
+En esta práctica se implementó la seguridad a nivel de métodos para diferenciar los niveles de acceso de los usuarios. Mediante la anotación `@PreAuthorize` y el uso del `SecurityContext`, logramos restringir endpoints críticos exclusivamente para administradores y creamos rutas personalizadas basadas en el `@AuthenticationPrincipal`.
+
+## Resultados y Evidencias
+
+**1. Captura de usuario autenticado (`/users/me`)**
+Al consumir el endpoint `GET /api/users/me` enviando un Bearer Token, el sistema inyecta el `UserDetailsImpl` a través de `@AuthenticationPrincipal` y retorna los datos exactos del usuario en sesión, incluyendo su lista de authorities (roles).
+![Usuario autenticado](./src/assets/users_me.png)
+
+**2. Captura de acceso denegado por rol (403 Forbidden)**
+Al intentar consumir `GET /api/products` utilizando el token de un usuario normal (`ROLE_USER`), el interceptor evalúa la condición `hasRole('ADMIN')` como falsa. El `GlobalExceptionHandler` captura la `AuthorizationDeniedException` y retorna un error `403 Forbidden` estructurado, protegiendo la información.
+![Acceso denegado](./src/assets/products_403.png)
+
+**3. Captura de acceso permitido por rol ADMIN (200 OK)**
+Al realizar la misma petición `GET /api/products` pero inyectando el token de un usuario con `ROLE_ADMIN`, la validación de `@PreAuthorize` es exitosa. El servidor permite la ejecución del controlador y retorna la lista global de productos con un `200 OK`.
+![Acceso permitido ADMIN](./src/assets/products_200_admin.png)
+
+---
+
+## Explicación Breve
+
+**¿Cuál es la diferencia entre autenticación y autorización?**
+* **Autenticación** responde a la pregunta *"¿Quién eres?"*. En nuestra API, esto ocurre cuando el usuario hace login, envía sus credenciales y el servidor valida su identidad devolviendo un token JWT. (Validar la identidad).
+* **Autorización** responde a la pregunta *"¿Qué puedes hacer?"*. Ocurre después de la autenticación; el servidor revisa si el usuario ya identificado tiene los permisos o roles necesarios (ej. `ROLE_ADMIN`) para ejecutar una acción específica. (Validar los permisos).
+
+**¿Por qué GET /api/products debe ser solo para ADMIN, mientras GET /api/products/page puede ser consumido por cualquier usuario autenticado?**
+El endpoint `GET /api/products` ejecuta un `findAll()` tradicional. Si la base de datos tuviera un millón de registros, este endpoint intentaría cargar todos en la memoria RAM del servidor simultáneamente, causando latencia severa o un colapso del sistema (`OutOfMemoryError`). Por su alto impacto y por exponer datos masivos, se restringe solo a tareas administrativas críticas (`ROLE_ADMIN`). 
+En cambio, `GET /api/products/page` utiliza paginación a nivel de base de datos. Solo carga y devuelve un fragmento pequeño y controlado de información (ej. 10 registros), lo cual es seguro, ligero y escalable, haciéndolo apto para que cualquier usuario normal lo consuma desde el frontend.

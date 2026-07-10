@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Slice;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -37,8 +37,10 @@ public class ProductsController {
     /*
      * Endpoint normal.
      * Se mantiene sin paginación para comparar con los endpoints paginados.
+     * AHORA PROTEGIDO: Solo los usuarios con rol ADMIN pueden acceder.
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')") 
     public List<ProductResponseDto> findAll() {
         return service.findAll();
     }
