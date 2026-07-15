@@ -1,0 +1,27 @@
+services:
+  - type: pserv
+    name: fundamentos-db
+    env: docker
+    plan: free
+    databases:
+      - name: fundamentos_db
+        user: ups
+
+  - type: web
+    name: fundamentos-api
+    env: java
+    plan: free
+    buildCommand: ./gradlew build -x test
+    startCommand: java -Xms256m -Xmx512m -jar build/libs/fundamentos-api.jar
+    healthCheckPath: /api/actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fundamentos-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 3600000
