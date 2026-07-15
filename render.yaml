@@ -7,10 +7,8 @@ databases:
 services:
   - type: web
     name: fundamentos-api
-    env: java
+    env: docker
     plan: free
-    buildCommand: ./gradlew build -x test
-    startCommand: java -Xms256m -Xmx512m -jar build/libs/fundamentos-api.jar
     healthCheckPath: /api/actuator/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
