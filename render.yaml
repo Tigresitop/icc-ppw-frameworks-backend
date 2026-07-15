@@ -1,12 +1,10 @@
-services:
-  - type: pserv
-    name: fundamentos-db
-    env: docker
+databases:
+  - name: fundamentos-db
+    databaseName: fundamentos_db
+    user: ups
     plan: free
-    databases:
-      - name: fundamentos_db
-        user: ups
 
+services:
   - type: web
     name: fundamentos-api
     env: java
