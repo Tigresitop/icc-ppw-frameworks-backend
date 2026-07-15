@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/devdb
+    username: ups
+    password: ups123
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    root: INFO
+    "ec.edu.ups.icc.fundamentos01": DEBUG
+    "org.hibernate.SQL": DEBUG
+    "org.springframework.security": DEBUG
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWT2024MustBeAtLeast256BitsLongForHS256Algorithm}
+  expiration: 1800000
+  refresh-expiration: 604800000

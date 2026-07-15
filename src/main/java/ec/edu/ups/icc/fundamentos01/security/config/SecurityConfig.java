@@ -66,10 +66,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/status/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll() 
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/moderator/**").hasAnyRole("ADMIN", "MODERATOR")
-                // Se eliminó la línea de /users/** permitAll()
                 .anyRequest().authenticated()
             );
 

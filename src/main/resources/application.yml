@@ -1,17 +1,33 @@
-server.port: 8080
-server.servlet.context-path: /api
+server:
+  servlet:
+    context-path: /api
 
-spring.datasource.url: jdbc:postgresql://localhost:5432/devdb
-spring.datasource.username: ups
-spring.datasource.password: ups123
+spring:
+  application:
+    name: fundamentos-api
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  # Ajuste para quitar la advertencia de Deprecated:
+  web:
+    error:
+      include-message: always
+      include-binding-errors: always
 
-spring.jpa.hibernate.ddl-auto: update
-spring.jpa.properties.hibernate.format_sql: true
-spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
 jwt:
-    secret: ${JWT_SECRET:mySecretKeyForJWT2024MustBeAtLeast256BitsLongForHS256Algorithm}
-    expiration: 1800000
-    refresh-expiration: 604800000
-    issuer: fundamentos01-api
-    header: Authorization
-    prefix: "Bearer "
+  issuer: fundamentos01-api
+  header: Authorization
+  prefix: "Bearer "
