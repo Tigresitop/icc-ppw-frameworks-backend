@@ -5,9 +5,15 @@ server:
 spring:
   application:
     name: fundamentos-api
+  datasource:
+    # Valores por defecto para que funcione localmente con bootRun
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:ups}
+    password: ${DB_PASSWORD:ups123}
   jpa:
     hibernate:
-      ddl-auto: validate
+      # CAMBIO CRUCIAL: 'update' para que cree la tabla refresh_tokens
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -28,6 +34,9 @@ management:
       show-details: when-authorized
 
 jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWT2024MustBeAtLeast256BitsLongForHS256Algorithm}
+  expiration: 1800000
+  refresh-expiration: 604800000
   issuer: fundamentos01-api
   header: Authorization
   prefix: "Bearer "

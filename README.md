@@ -326,3 +326,45 @@ Si el backend confía ciegamente en un `userId` enviado en el cuerpo de la petic
 **¿Cuál es la diferencia entre autorización por rol y autorización por ownership?**
 * **Autorización por rol:** Responde a la pregunta *"¿Qué cargo tienes?"*. Evalúa si el usuario pertenece a un grupo con ciertos privilegios generales (ej. `ROLE_ADMIN` puede ver paneles generales o listar todos los usuarios).
 * **Autorización por ownership:** Responde a la pregunta *"¿Esta información es tuya?"*. Actúa a nivel de los datos (filas de la base de datos). Incluso si un usuario tiene permisos para ejecutar una acción genérica como "editar productos" (`ROLE_USER`), el ownership verifica que solo pueda editar **sus propios** productos y no los de su compañero.
+# Práctica: Autenticación y Autorización con JWT y Refresh Tokens
+
+## Descripción del Proyecto
+El presente proyecto implementa un sistema de seguridad para una API RESTful utilizando Spring Boot y Spring Security. Se incorporó un mecanismo de autenticación sin estado (stateless) basado en JSON Web Tokens (JWT) junto con la estrategia de rotación de Refresh Tokens. El objetivo principal es mantener la sesión del usuario de forma segura, permitiendo renovar el acceso sin solicitar credenciales repetidamente y mitigando los riesgos asociados al compromiso de tokens.
+
+## Tecnologías Utilizadas
+* Java
+* Spring Boot (Spring Security, Spring Data JPA, Spring Web)
+* PostgreSQL (Desplegado en contenedor Docker)
+* Gradle
+* Autenticación JWT (io.jsonwebtoken)
+
+## Evidencias de Pruebas (API Client)
+
+### 1. Autenticación y Generación de Tokens (Login)
+Se validan las credenciales del usuario y el servidor emite exitosamente un `accessToken` y un `refreshToken` junto con los roles asignados.
+![Evidencia 1 - Login](src/assets/1.png)
+
+### 2. Rotación de Refresh Token
+Al enviar un `refreshToken` válido al endpoint correspondiente, el sistema lo procesa, lo invalida y emite un nuevo par de tokens (Access y Refresh), demostrando el correcto funcionamiento de la estrategia de rotación.
+![Evidencia 2 - Refresh](src/assets/2.png)
+
+### 3. Revocación de Token (Logout)
+Se recibe el `refreshToken` actual y se elimina/invalida en la base de datos, cerrando la sesión del usuario de manera segura con una respuesta `204 No Content`.
+![Evidencia 3 - Logout](src/assets/3.png)
+
+### 4. Prevención de Reutilización (Refresh tras Logout)
+El sistema deniega el acceso y retorna un error cuando se intenta generar nuevos tokens utilizando un `refreshToken` que previamente fue revocado en el proceso de cierre de sesión.
+![Evidencia 4 - Refresh Fallido](src/assets/4.png)
+
+---
+
+## Respuestas Teóricas
+
+**¿Cuál es la diferencia entre access token y refresh token?**
+El `access token` tiene un tiempo de vida muy corto (generalmente minutos) y es el que se envía en cada petición HTTP para acceder a los recursos protegidos de la API. El `refresh token`, por su parte, tiene un tiempo de vida largo (días o semanas) y su único propósito es solicitar al servidor un nuevo `access token` cuando el anterior caduca. Esta separación minimiza la ventana de vulnerabilidad en caso de que un token sea interceptado.
+
+**¿Por qué el refresh token no debe usarse en Authorization: Bearer?**
+El encabezado `Authorization: Bearer` se transmite constantemente en casi todas las peticiones que se realizan a la API. Si el `refresh token` (que tiene una vigencia prolongada) viajara en este encabezado, se expondría en múltiples solicitudes, aumentando drásticamente el riesgo de ser robado mediante ataques de red. Por seguridad, el `refresh token` debe almacenarse de forma segura en el cliente y enviarse únicamente al endpoint específico de renovación (`/refresh`).
+
+**¿Qué significa rotar un refresh token?**
+La rotación de refresh tokens es una medida de seguridad estricta que consiste en emitir un **nuevo** `refresh token` y un nuevo `access token` cada vez que el usuario solicita una renovación, invalidando inmediatamente el token anterior en la base de datos. Esto previene ataques de repetición (Replay Attacks); si un atacante roba un refresh token y lo utiliza, el usuario legítimo intentará usar el suyo posteriormente, lo que alertará al sistema de la anomalía, permitiéndole revocar toda la familia de tokens y obligar a iniciar sesión nuevamente.
