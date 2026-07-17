@@ -1,35 +1,65 @@
+# syntax=docker/dockerfile:1.7
+
 # ETAPA 1: BUILD
-FROM gradle:jdk25 AS builder
-WORKDIR /build
+FROM eclipse-temurin:25-jdk-alpine AS builder
+WORKDIR /workspace/app
 
-COPY build.gradle settings.gradle* gradle.properties* ./
-COPY gradle ./gradle
-RUN gradle dependencies --no-daemon
+# Copiar primero Gradle Wrapper y configuración
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle settings.gradle ./
+RUN chmod +x gradlew
 
-COPY src ./src
-# 1. Forzamos la creación exclusiva del JAR de Spring Boot
-RUN gradle bootJar --no-daemon
-# 2. Destruimos cualquier archivo 'plain' generado para evitar confusiones al copiar
-RUN find build/libs -name "*-plain.jar" -type f -delete
+# Copiar el código fuente
+COPY src src
+
+# Compilar usando caché persistente de BuildKit
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew bootJar -x test --no-daemon
+
+# Extraer el JAR para separar dependencias y clases
+RUN mkdir -p build/dependency \
+    && cd build/dependency \
+    && jar -xf ../libs/app.jar
 
 # ETAPA 2: RUNTIME
-FROM eclipse-temurin:25-jre-alpine
-RUN addgroup -S spring && adduser -S spring -G spring
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
-COPY --from=builder /build/build/libs/*.jar app.jar
-RUN chown spring:spring app.jar
+# curl se utiliza exclusivamente para el health check
+RUN apk add --no-cache curl \
+    && addgroup -S spring \
+    && adduser -S spring -G spring
+
+ARG DEPENDENCY=/workspace/app/build/dependency
+
+# Dependencias externas: cambian con menor frecuencia
+COPY --from=builder --chown=spring:spring \
+    ${DEPENDENCY}/BOOT-INF/lib /app/lib
+
+# Metadatos del JAR
+COPY --from=builder --chown=spring:spring \
+    ${DEPENDENCY}/META-INF /app/META-INF
+
+# Clases y recursos de la aplicación
+COPY --from=builder --chown=spring:spring \
+    ${DEPENDENCY}/BOOT-INF/classes /app
+
 USER spring:spring
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/actuator/health || exit 1
+# Configuración no sensible y reemplazable en runtime
+ENV TZ=America/Guayaquil
 
-ENV SPRING_PROFILES_ACTIVE=prod
+HEALTHCHECK --interval=30s \
+    --timeout=5s \
+    --start-period=60s \
+    --retries=3 \
+    CMD curl --fail --silent --show-error http://localhost:8080/api/actuator/health || exit 1
 
 ENTRYPOINT ["java", \
-    "-Djava.security.egd=file:/dev/./urandom", \
     "-Xms256m", \
     "-Xmx512m", \
-    "-jar", \
-    "app.jar"]
+    "-cp", \
+    "/app:/app/lib/*", \
+    "ec.edu.ups.icc.fundamentos01.Fundamentos01Application"]

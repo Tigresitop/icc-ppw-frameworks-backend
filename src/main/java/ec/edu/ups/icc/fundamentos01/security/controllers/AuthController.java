@@ -5,6 +5,7 @@ import ec.edu.ups.icc.fundamentos01.security.dtos.LoginRequestDto;
 import ec.edu.ups.icc.fundamentos01.security.dtos.RefreshTokenRequestDto;
 import ec.edu.ups.icc.fundamentos01.security.dtos.RegisterRequestDto;
 import ec.edu.ups.icc.fundamentos01.security.services.AuthService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,10 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 
+    @Tag(
+        name = "Authentication",
+        description = "Gestor de autenticación y autorización con JWT"
+    )
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> register(@Valid @RequestBody RegisterRequestDto registerRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(registerRequest));

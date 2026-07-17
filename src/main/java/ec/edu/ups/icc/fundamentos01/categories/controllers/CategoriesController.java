@@ -19,8 +19,10 @@ import ec.edu.ups.icc.fundamentos01.categories.services.CategoryService;
 import ec.edu.ups.icc.fundamentos01.products.dtos.ProductFilterByCategoryDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.ProductResponseDto;
 import ec.edu.ups.icc.fundamentos01.products.services.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Categories", description = "Manejo de categorías para los productos")
 @RestController
 @RequestMapping("/categories")
 public class CategoriesController {

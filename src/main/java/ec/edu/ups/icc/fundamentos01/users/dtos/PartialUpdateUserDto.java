@@ -1,18 +1,23 @@
 package ec.edu.ups.icc.fundamentos01.users.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "Datos permitidos para actualizar parcialmente a un usuario")
 public class PartialUpdateUserDto {
 
-    @Size(min = 3, max = 150, message = "El nombre debe tener entre 3 y 150 caracteres")
+    @Schema(description = "Nombre completo del usuario", example = "Juan Pérez")
+    @Size(min = 3, max = 150)
     private String name;
 
-    @Email(message = "Debe ingresar un email válido")
-    @Size(max = 150, message = "El email no debe superar los 150 caracteres")
+    @Schema(description = "Correo institucional o personal actualizado", example = "jperez@ups.edu.ec")
+    @Email
+    @Size(max = 150)
     private String email;
 
-    @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
+    @Schema(description = "Nueva contraseña del usuario", example = "NuevaPass123!")
+    @Size(min = 8)
     private String password;
 
 

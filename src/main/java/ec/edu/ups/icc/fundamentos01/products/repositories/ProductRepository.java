@@ -24,9 +24,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
         List<ProductEntity> findByOwner_IdAndDeletedFalse(Long ownerId);
 
-        /*
-         * Busca productos activos de un usuario aplicando filtros opcionales.
-         */
+
         @Query("""
                 SELECT p
                 FROM ProductEntity p
@@ -44,10 +42,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                 @Param("maxPrice") Double maxPrice
         );
 
-        /*
-         * Busca productos activos de una categoría aplicando filtros opcionales.
-         * (Punto 18: Usa JOIN y DISTINCT por la nueva relación ManyToMany)
-         */
+
         @Query("""
                 SELECT DISTINCT p
                 FROM ProductEntity p
@@ -70,14 +65,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
         );
 
 
-        // ====================================================================
-        // CONSULTAS DE PAGINACIÓN ACTUALIZADAS PARA OWNERSHIP (Práctica 13)
-        // ====================================================================
-
-        /*
-         * Consulta productos activos usando Page.
-         * Incorpora Ownership: Si es ADMIN trae todos, si es USER trae solo los suyos.
-         */
         @Query(
                 value = """
                         SELECT p
@@ -97,10 +84,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                 @Param("isAdmin") boolean isAdmin, 
                 Pageable pageable);
 
-        /*
-         * Consulta productos activos usando Slice.
-         * Incorpora Ownership: Si es ADMIN trae todos, si es USER trae solo los suyos.
-         */
+        
         @Query("""
                 SELECT p
                 FROM ProductEntity p
@@ -112,12 +96,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                 @Param("isAdmin") boolean isAdmin, 
                 Pageable pageable);
 
-        // ====================================================================
-
-
-        /*
-         * Consulta productos por categoría usando Page (Apartado 20.4)
-         */
         @Query(
                 value = """
                         SELECT DISTINCT p

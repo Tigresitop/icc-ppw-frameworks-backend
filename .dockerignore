@@ -1,11 +1,36 @@
+# Gradle
+gradle/
 build/
-.gradle/
+
+# Git
 .git/
+.gitignore
+
+# IDE
 .idea/
 .vscode/
 *.iml
-README.md
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Variables y secretos
 .env
-.gradle/
-gradle-app.setting
-.gradletasknamecache
+.env.*
+
+# Logs
+log/
+logs/
+
+# Temporales
+*.tmp
+*.swp
+tmp/
+temp/
+
+# Documentación y archivos no requeridos en el build
+README.md
+
+# Configuraciones locales
+docker-compose.override.yml

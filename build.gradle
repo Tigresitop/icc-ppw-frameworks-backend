@@ -13,6 +13,14 @@ java {
     }
 }
 
+tasks.bootJar {
+    archiveFileName.set("app.jar")
+}
+
+tasks.jar {
+    enabled = false
+}
+
 repositories {
     mavenCentral()
 }
@@ -38,6 +46,7 @@ dependencies {
 
     // Spring Boot Actuator para health checks (Práctica 14)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 
 }
 
