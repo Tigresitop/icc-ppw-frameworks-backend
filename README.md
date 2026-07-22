@@ -419,3 +419,31 @@ Porque Swagger UI funciona únicamente como una interfaz estática de lectura. E
 
 **¿Cómo se configura Swagger para enviar un JWT en Authorization: Bearer?**
 En Spring Boot con SpringDoc, se configura a través de anotaciones en el código. Primero, se define el esquema de seguridad global usando `@SecurityScheme(type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")` en la clase principal o de configuración. Luego, se indica qué controladores o la API en general requieren este esquema usando la anotación `@SecurityRequirement(name = "bearerAuth")`. Con esto, Swagger UI habilita el botón "Authorize" y se encarga de inyectar automáticamente el token ingresado en el encabezado `Authorization: Bearer` de cada petición.
+# Práctica 16: Despliegue portable de Spring Boot con Docker y Nginx en Ubuntu Server
+
+## 15. Entregables de la práctica
+
+### 1. Contenedores en ejecución en Ubuntu Server
+A continuación se muestran los contenedores de Nginx y de la API de Spring Boot (`fundamentos-api`) ejecutándose simultáneamente en la red de Docker. Nginx está mapeado al puerto 80 del host Ubuntu.
+
+![Contenedores en ejecución](src/assets/nginx-fundamentos-api.png)
+
+### 2. Health Check desde Ubuntu Server
+Prueba de conectividad local dentro de la máquina virtual utilizando `curl` hacia el proxy inverso (Nginx) en el puerto 80, confirmando que el servicio está levantado.
+
+![Curl Ubuntu Server](src/assets/curl-ubuntuserver.png)
+
+### 3. Health Check desde la máquina anfitriona
+Prueba de acceso externo desde el navegador en el host (Windows) apuntando a la IP de la máquina virtual en la red Host-Only (`192.168.56.103`), validando el enrutamiento correcto a través de Nginx hacia el contenedor de Spring Boot.
+
+![Health Check Anfitrión](src/assets/curl-maquina-anfitriona.png)
+
+### 4. Explicación de la conexión a PostgreSQL externo
+Para la conexión a la base de datos, se utilizó la instancia de PostgreSQL alojada en la máquina anfitriona (Windows). La máquina virtual Ubuntu Server y el host se comunicaron a través de la red Host-Only de VirtualBox. Por lo tanto, en el archivo de configuración del contenedor, la variable `DATABASE_URL` se apuntó a la IP del host anfitrión (`jdbc:postgresql://192.168.56.1:5432/devdb`).
+
+El principal desafío de conectividad radicó en que el Firewall de Windows (administrado en este entorno por Kaspersky Standard) bloqueaba el tráfico entrante por defecto al detectar la conexión de VirtualBox como una red pública. Para que el contenedor en Ubuntu pudiera establecer la conexión exitosamente y evitar la excepción `Connection timed out`, fue necesario configurar los permisos del firewall y pausar temporalmente el bloqueo estricto del antivirus, permitiendo así el tráfico TCP hacia el puerto local `5432`.
+
+### 5. Consumo del endpoint de Login desde la máquina anfitriona
+Petición `POST` realizada con un cliente REST desde la máquina anfitriona hacia el endpoint de autenticación. Esto demuestra de forma definitiva (End-to-End) que la API recibe la petición a través de Nginx, consulta exitosamente la base de datos externa en Windows y devuelve un token JWT válido con un código HTTP `200 OK`.
+
+![Login desde Anfitrión](src/assets/login-ubuntu.png)
