@@ -51,7 +51,6 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
     }
 
-    // NOTA: Se retira (readOnly = true) porque ahora el login guarda los refresh tokens en BD
     @Transactional 
     public AuthResponseDto login(LoginRequestDto loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -89,7 +88,7 @@ public class AuthService {
         user.setEmail(registerRequest.getEmail());
         user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
 
-        RoleEntity userRole = roleRepository.findByName(RoleName.ROLE_USER)
+        RoleEntity userRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
             .orElseThrow(() -> new BadRequestException("Rol por defecto no encontrado"));
 
         Set<RoleEntity> roles = new HashSet<>();
@@ -100,14 +99,12 @@ public class AuthService {
 
         UserDetailsImpl userDetails = UserDetailsImpl.build(user);
         
-        // 5. Cambiamos la generación de token y añadimos el refresh token
         String accessToken = jwtUtil.generateAccessTokenFromUserDetails(userDetails);
         RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(user, userDetails);
 
         return buildAuthResponse(accessToken, refreshToken.getToken(), user);
     }
 
-    // 6. NUEVO MÉTODO: Refresh
     @Transactional
     public AuthResponseDto refresh(RefreshTokenRequestDto request) {
         RefreshTokenEntity currentRefreshToken =
@@ -115,12 +112,10 @@ public class AuthService {
 
         UserEntity user = currentRefreshToken.getUser();
 
-        // Rotación: revocamos el usado
         refreshTokenService.revoke(currentRefreshToken);
 
         UserDetailsImpl userDetails = UserDetailsImpl.build(user);
 
-        // Generamos nuevos
         String newAccessToken = jwtUtil.generateAccessTokenFromUserDetails(userDetails);
         RefreshTokenEntity newRefreshToken = refreshTokenService.createRefreshToken(
                 user,
@@ -130,7 +125,6 @@ public class AuthService {
         return buildAuthResponse(newAccessToken, newRefreshToken.getToken(), user);
     }
 
-    // 7. NUEVO MÉTODO: Logout
     @Transactional
     public void logout(RefreshTokenRequestDto request) {
         RefreshTokenEntity refreshToken =
@@ -139,15 +133,11 @@ public class AuthService {
         refreshTokenService.revoke(refreshToken);
     }
 
-    // 8. Método de apoyo: Buscar usuario
     private UserEntity findActiveUserById(Long id) {
-        // Asume que tu UserRepository tiene el método findByIdAndDeletedFalse(Long id).
-        // Si aún no tienes eliminación lógica, cámbialo a findById(id).
         return userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new BadRequestException("Usuario no válido"));
     }
 
-    // 9. Método de apoyo: Construir el DTO final
     private AuthResponseDto buildAuthResponse(
             String accessToken,
             String refreshToken,

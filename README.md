@@ -326,7 +326,7 @@ Si el backend confía ciegamente en un `userId` enviado en el cuerpo de la petic
 **¿Cuál es la diferencia entre autorización por rol y autorización por ownership?**
 * **Autorización por rol:** Responde a la pregunta *"¿Qué cargo tienes?"*. Evalúa si el usuario pertenece a un grupo con ciertos privilegios generales (ej. `ROLE_ADMIN` puede ver paneles generales o listar todos los usuarios).
 * **Autorización por ownership:** Responde a la pregunta *"¿Esta información es tuya?"*. Actúa a nivel de los datos (filas de la base de datos). Incluso si un usuario tiene permisos para ejecutar una acción genérica como "editar productos" (`ROLE_USER`), el ownership verifica que solo pueda editar **sus propios** productos y no los de su compañero.
-# Práctica: Autenticación y Autorización con JWT y Refresh Tokens
+# Práctica 14: Autenticación y Autorización con JWT y Refresh Tokens
 
 ## Descripción del Proyecto
 El presente proyecto implementa un sistema de seguridad para una API RESTful utilizando Spring Boot y Spring Security. Se incorporó un mecanismo de autenticación sin estado (stateless) basado en JSON Web Tokens (JWT) junto con la estrategia de rotación de Refresh Tokens. El objetivo principal es mantener la sesión del usuario de forma segura, permitiendo renovar el acceso sin solicitar credenciales repetidamente y mitigando los riesgos asociados al compromiso de tokens.
@@ -368,3 +368,54 @@ El encabezado `Authorization: Bearer` se transmite constantemente en casi todas 
 
 **¿Qué significa rotar un refresh token?**
 La rotación de refresh tokens es una medida de seguridad estricta que consiste en emitir un **nuevo** `refresh token` y un nuevo `access token` cada vez que el usuario solicita una renovación, invalidando inmediatamente el token anterior en la base de datos. Esto previene ataques de repetición (Replay Attacks); si un atacante roba un refresh token y lo utiliza, el usuario legítimo intentará usar el suyo posteriormente, lo que alertará al sistema de la anomalía, permitiéndole revocar toda la familia de tokens y obligar a iniciar sesión nuevamente.
+# Práctica 15: Documentación y Seguridad con Spring Boot y OpenAPI
+
+## 23. Resultados y evidencias
+
+A continuación se presentan las capturas de pantalla solicitadas que validan el correcto funcionamiento de la documentación y las restricciones de seguridad implementadas.
+
+### Captura de Swagger UI cargado
+Vista de la ruta `/api/swagger-ui/index.html` donde se evidencia la lista de controladores y los endpoints correctamente agrupados mediante tags.
+![Swagger UI](src/assets/swagger-ui.png)
+
+### Captura del JSON OpenAPI
+Vista de la ruta `/api/v3/api-docs` que demuestra la generación de la especificación OpenAPI, evidenciando las secciones `openapi`, `paths` y `components`.
+![JSON OpenAPI](src/assets/JSON-OPENAPI.png)
+
+### Captura de AuthController documentado
+Despliegue del controlador de autenticación evidenciando las rutas `POST /api/auth/register`, `POST /api/auth/login` y las descripciones personalizadas de cada endpoint.
+![AuthController Documentado](src/assets/authcontroller.png)
+
+### Captura del botón Authorize
+Ventana de autorización de Swagger que evidencia la configuración del esquema `bearerAuth` listo para recibir el JWT.
+![Botón Authorize](src/assets/boton-autorize.png)
+
+### Captura de endpoint protegido sin token
+Petición al endpoint `GET /api/products/page?page=0&size=5` sin inyectar credenciales. Se evidencia el rechazo de la solicitud con el código de error **401 Unauthorized**.
+![Endpoint protegido sin token](src/assets/endpointprotegidosintoken.png)
+
+### Captura de endpoint protegido con token desde Swagger
+Petición al endpoint `GET /api/products/page?page=0&size=5` autorizada previamente con un JWT en Swagger. Se evidencia el acceso exitoso devolviendo un código **200 OK**.
+![Endpoint protegido con token desde Swagger](src/assets/endpointprotegidocontokendesdeswagger.png)
+
+### Captura de endpoint ADMIN con usuario normal
+Petición al endpoint restrictivo `GET /api/products` utilizando un token con el rol `ROLE_USER`. Se evidencia que el servidor deniega el acceso devolviendo un código **403 Forbidden**.
+![Endpoint ADMIN con usuario normal](src/assets/endpointadminconusuarionormal.png)
+
+### Captura de endpoint ADMIN con usuario administrador
+Petición al endpoint `GET /api/products` utilizando un token con el rol `ROLE_ADMIN`. Se evidencia la validación de permisos exitosa devolviendo un código **200 OK**.
+![Endpoint ADMIN con usuario administrador](src/assets/admin.png)
+
+---
+
+## Explicación breve
+
+**¿Cuál es la diferencia entre Swagger UI y OpenAPI?**
+* **OpenAPI** es una especificación o estándar universal (un formato) para describir y documentar APIs REST, el cual se presenta en formato JSON o YAML. Es el "contrato" de la API.
+* **Swagger UI** es una herramienta gráfica (una interfaz web interactiva) que lee ese archivo JSON/YAML de OpenAPI y lo renderiza de forma visual en el navegador, permitiendo a los desarrolladores leer la documentación y probar los endpoints directamente.
+
+**¿Por qué Swagger puede ser público pero los endpoints seguir protegidos?**
+Porque Swagger UI funciona únicamente como una interfaz estática de lectura. Exponer el mapa de cómo funciona la API no vulnera el sistema. Cuando el usuario intenta hacer clic en "Execute" desde Swagger hacia un endpoint protegido, esa petición HTTP viaja hacia el backend y debe pasar por el filtro de seguridad de Spring Security (`JwtAuthenticationFilter`), el cual bloqueará cualquier acceso que carezca de un token válido firmado digitalmente, sin importar si la petición provino de Swagger, Postman o de un frontend real.
+
+**¿Cómo se configura Swagger para enviar un JWT en Authorization: Bearer?**
+En Spring Boot con SpringDoc, se configura a través de anotaciones en el código. Primero, se define el esquema de seguridad global usando `@SecurityScheme(type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")` en la clase principal o de configuración. Luego, se indica qué controladores o la API en general requieren este esquema usando la anotación `@SecurityRequirement(name = "bearerAuth")`. Con esto, Swagger UI habilita el botón "Authorize" y se encarga de inyectar automáticamente el token ingresado en el encabezado `Authorization: Bearer` de cada petición.

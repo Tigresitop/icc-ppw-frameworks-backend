@@ -27,6 +27,8 @@ import ec.edu.ups.icc.fundamentos01.products.dtos.UpdateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.services.ProductService;
 import ec.edu.ups.icc.fundamentos01.security.services.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,17 +51,18 @@ public class ProductsController {
     @Operation(
         summary = "Obtener todos los productos",
         description = """
-                Devuelve la lista completa de productos activos registrados en el sistema.
-                
-                Requisitos:
-                - Estar autenticado mediante JWT.
-                - Tener el rol ADMIN o USER.
-                
-                No utiliza paginación.
+                Devuelve la lista completa de productos activos sin paginación.
+                Este endpoint es administrativo y requiere ROLE_ADMIN.
+                Para consultas normales se recomienda usar /products/page o /products/slice.
                 """
     )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Listado completo de productos"),
+        @ApiResponse(responseCode = "401", description = "Token ausente o inválido"),
+        @ApiResponse(responseCode = "403", description = "El usuario no tiene ROLE_ADMIN")
+    })
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')") 
+    @PreAuthorize("hasRole('ADMIN')") 
     public List<ProductResponseDto> findAll() {
         return service.findAll();
     }
