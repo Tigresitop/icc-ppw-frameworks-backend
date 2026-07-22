@@ -53,8 +53,3 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
-
-// Configuración para nombrar el archivo .jar compilado (Práctica 14)
-bootJar {
-    archiveFileName = 'fundamentos-api.jar'
-}
